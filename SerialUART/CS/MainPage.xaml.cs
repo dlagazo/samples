@@ -9,6 +9,10 @@ using Windows.Devices.SerialCommunication;
 using Windows.Storage.Streams;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
+using Windows.System;
+using Windows.Storage;
+using System.Collections.Generic;
 
 namespace SerialSample
 {    
@@ -20,17 +24,38 @@ namespace SerialSample
         private SerialDevice serialPort = null;
         DataWriter dataWriteObject = null;
         DataReader dataReaderObject = null;
-
+        byte cmdByte = 0x53;
+        byte df = 0x08;
+        byte checksum = 0x5B;
         private ObservableCollection<DeviceInformation> listOfDevices;
         private CancellationTokenSource ReadCancellationTokenSource;
-       
+
+        private ObservableCollection<ChartData> _osData = new ObservableCollection<ChartData>()
+        {
+            new ChartData() { pr=88, spo2=96 },
+            new ChartData() { pr=88, spo2=96 },
+            new ChartData() { pr=88, spo2=96 },
+            new ChartData() { pr=88, spo2=96 },
+            new ChartData() { pr=88, spo2=96 },
+        };
+
+        public ObservableCollection<ChartData> chartData { get { return _osData;}}
+
+        public class ChartData
+        {
+            public double spo2 { get; set; }
+            public double pr { get; set; }
+        }
+
         public MainPage()
         {
+            
             this.InitializeComponent();            
-            comPortInput.IsEnabled = false;
-            sendTextButton.IsEnabled = false;
+            comPortInput.IsEnabled = true;
             listOfDevices = new ObservableCollection<DeviceInformation>();
-            ListAvailablePorts();
+
+            var uri = new Uri("ms-appx-web:///chart.html");
+            webView.Source = uri;
         }
 
         /// <summary>
@@ -73,7 +98,10 @@ namespace SerialSample
         /// <param name="e"></param>
         private async void comPortInput_Click(object sender, RoutedEventArgs e)
         {
-            var selection = ConnectDevices.SelectedItems;
+            //await webView.InvokeScriptAsync("eval", new string[] { "test(1,2,3')" });
+
+            ListAvailablePorts();
+            var selection = ConnectDevices.Items;//.SelectedItems;
 
             if (selection.Count <= 0)
             {
@@ -81,14 +109,22 @@ namespace SerialSample
                 return;
             }
 
-            DeviceInformation entry = (DeviceInformation)selection[0];         
+            DeviceInformation entry = (DeviceInformation)selection[0];
+
+            if(comPortInput.Content.ToString() == "RESET")
+            {
+                sendText.Text = "";
+                CloseDevice();
+            }
+            
 
             try
             {                
                 serialPort = await SerialDevice.FromIdAsync(entry.Id);
 
                 // Disable the 'Connect' button 
-                comPortInput.IsEnabled = false;
+                
+                comPortInput.Content = "RESET";
 
                 // Configure serial settings
                 serialPort.WriteTimeout = TimeSpan.FromMilliseconds(1000);
@@ -114,15 +150,13 @@ namespace SerialSample
                 ReadCancellationTokenSource = new CancellationTokenSource();
 
                 // Enable 'WRITE' button to allow sending data
-                sendTextButton.IsEnabled = true;
-
+                //status.Text = "Connected:" + entry.Id.ToString();
                 Listen();
             }
             catch (Exception ex)
             {
                 status.Text = ex.Message;
                 comPortInput.IsEnabled = true;
-                sendTextButton.IsEnabled = false;
             }
         }
 
@@ -191,7 +225,36 @@ namespace SerialSample
             }
             else
             {
-                status.Text = "Enter the text you want to write and then click on 'WRITE'";
+                //status.Text = "Enter the text you want to write and then click on 'WRITE'";
+            }
+        }
+
+        private async Task WriteCmd()
+        {
+            Task<UInt32> storeAsyncTask;
+
+            try
+            {
+                // Load the text from the sendText input text box to the dataWriter object
+                Byte[] cmd = new byte[3];
+                cmd[0] = cmdByte;
+                cmd[1] = df;
+                cmd[2] = checksum;
+                dataWriteObject.WriteBytes(cmd);//.WriteString(cmdByte.ToString() + df.ToString() + checksum.ToString());
+                
+                // Launch an async task to complete the write operation
+                storeAsyncTask = dataWriteObject.StoreAsync().AsTask();
+
+                UInt32 bytesWritten = await storeAsyncTask;
+                if (bytesWritten > 0)
+                {
+                    status.Text = "Command:" + System.Text.Encoding.UTF8.GetString(cmd);
+                }
+               
+            }
+            catch(Exception e)
+            {
+                status.Text = "Unable to write command";
             }
         }
 
@@ -207,7 +270,10 @@ namespace SerialSample
             {
                 if (serialPort != null)
                 {
+
+                    //dataWriteObject = new DataWriter(serialPort.OutputStream);
                     dataReaderObject = new DataReader(serialPort.InputStream);
+                    //await WriteCmd();
 
                     // keep reading the serial input
                     while (true)
@@ -238,12 +304,15 @@ namespace SerialSample
                 }
             }
         }
+        Byte[] readGlobal = new Byte[75 * 5];
 
         /// <summary>
         /// ReadAsync: Task that waits on data and reads asynchronously from the serial device InputStream
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
+        List<string> lines = new List<string>();
+        int count = 0;
         private async Task ReadAsync(CancellationToken cancellationToken)
         {
             Task<UInt32> loadAsyncTask;
@@ -255,17 +324,114 @@ namespace SerialSample
 
             // Set InputStreamOptions to complete the asynchronous read operation when one or more bytes is available
             dataReaderObject.InputStreamOptions = InputStreamOptions.Partial;
-
+           
             // Create a task object to wait for data on the serialPort.InputStream
             loadAsyncTask = dataReaderObject.LoadAsync(ReadBufferLength).AsTask(cancellationToken);
 
             // Launch the task and wait
             UInt32 bytesRead = await loadAsyncTask;
+            sendText.Text = "";
             if (bytesRead > 0)
             {
-                rcvdText.Text = dataReaderObject.ReadString(bytesRead);
-                status.Text = "bytes read successfully!";
-            }            
+                //dataReader.ReadBytes(stream);
+                //Convert.ToBase64String(stream);
+                //var read = dataReaderObject.(bytesRead);
+                Byte[] read = new Byte[75*5];
+                readGlobal = read;
+                dataReaderObject.ReadBytes(read);
+                //rcvdText.Text = read;
+                //            rcvdText.Text = dataReaderObject.ReadString(bytesRead);
+                //byte[] read = new byte[1024];
+                //dataReaderObject.ReadBytes(read);
+                rcvdText.Text = System.Text.Encoding.UTF8.GetString(read);
+                //status.Text = "bytes read successfully!";
+                var str = System.Text.Encoding.UTF8.GetString(read);
+                //if(Byte.Parse(str[0])
+                int ePrdMsb = 0, ePrdLsb = 0;
+                double pleth = 0, spo2 = 0, pr = 0;
+                if (GetBit(read[0], 0))
+                {
+                    for (int j = 0; j < 75; j++)
+                    {
+                        if(!GetBit(read[(j * 5)], 4) && !GetBit(read[(j * 5)], 3))
+                        {
+                            var line = "S:" + GetBit(read[(j * 5)], 0) + ", F" + (j + 1) + ", B1:" + read[(j * 5)]
+                            + ", B2:" + read[(j * 5) + 1] + ", B3:" + read[(j * 5) + 2] + ", B4:" + read[(j * 5) + 3] + ", B5:" + read[(j * 5) + 4]
+                            + ", OOT:" + GetBit(read[(j * 5)], 4) + ", SNSA:" + GetBit(read[(j * 5)], 3)
+                            + ", PLETH:" + ((read[(j * 5) + 1] * 256) + read[(j * 5) + 2]) + getValue(j + 1, read[(j * 5) + 3]);
+                            //105 + 102 = 134
+                            //" RPRF:" + GetBit(read[(j * 5)], 2)
+                            //+ "\r\n";
+                                if ((j + 1) == 22)
+                                    ePrdMsb = read[(j * 5) + 3] * 256;
+                                else if ((j + 1) == 23)
+                                    ePrdLsb = read[(j * 5) + 3];
+                            sendText.Text += line + "\r\n";
+
+                            if (j + 1 == 3 || j+1 == 28 || j+1 == 53)
+                            {
+                                //pleth = ((read[(j * 5) + 1] * 256) + read[(j * 5) + 2]) / 65535 * 100;
+                                spo2 = read[(j * 5) + 3];
+
+                            }
+                            if(j+1 == 20 || j+1 == 45 || j+1 == 70)
+                            {
+                                pr = Convert.ToInt32(GetBit(read[((j) * 5) + 3], 1)) * 256 + Convert.ToInt32(GetBit(read[((j) * 5) + 3], 0)) * 128 + read[((j+1) * 5) + 3];
+                                lines.Add(count +"," + spo2 + "," + pr);
+                                count++;
+                                await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2 + ", " + pr + ")" });
+                                //chartData.Add(new ChartData { spo2 = spo2, pr = pr });
+                            }
+
+                            //lines.Add(line);
+                            //await Windows.Storage.FileIO.WriteTextAsync(file, line);
+                        }
+                            
+                    }
+                }
+                else
+                {
+                    CloseDevice();
+                    sendText.Text += "BAD DATA: PLEASE RETRY CONNECTION";
+                }
+             
+                Debug.WriteLine("E-PR-D:" + ((ePrdMsb + ePrdLsb) * 282/65535) + 18);
+                
+                
+
+            }
+
+        }
+
+        private string getValue(int j, byte val)
+        {
+            if (j == 3 || j == 28 || j == 53)
+                return ", SPO2:" + val;
+            else if (j == 20 || j == 45 || j == 70)
+                return ", PR:" + Convert.ToInt32(GetBit(readGlobal[((j-1) * 5) + 3],1))*256 + Convert.ToInt32(GetBit(readGlobal[((j - 1) * 5) + 3], 0)) * 128 + readGlobal[((j) * 5) + 3];
+
+
+
+
+            return ",";
+        }
+
+
+
+        private string GetSPO2(byte spo2)
+        {
+            if (spo2 < 127)
+                return (spo2 / 127 * 100).ToString();
+
+            else
+                return "";
+                
+        }
+
+        
+        private bool GetBit( byte b, int bitNumber)
+        {
+            return (b & (1 << bitNumber)) != 0;
         }
 
         /// <summary>
@@ -289,7 +455,8 @@ namespace SerialSample
         /// - Clears the enumerated device Id list
         /// </summary>
         private void CloseDevice()
-        {            
+        {
+            CancelReadTask();
             if (serialPort != null)
             {
                 serialPort.Dispose();
@@ -297,7 +464,6 @@ namespace SerialSample
             serialPort = null;
 
             comPortInput.IsEnabled = true;
-            sendTextButton.IsEnabled = false;            
             rcvdText.Text = "";
             listOfDevices.Clear();               
         }
@@ -323,6 +489,38 @@ namespace SerialSample
             {
                 status.Text = ex.Message;
             }          
-        }        
+        }
+        Windows.Storage.StorageFile file;
+        private async void saveFile_Click(object sender, RoutedEventArgs e)
+        {
+            Windows.Storage.StorageFolder storageFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
+            string dt = DateTime.Now.Date.Year + "_" + DateTime.Now.Date.Month + "_" + DateTime.Now.Date.Day + "_" + DateTime.Now.TimeOfDay.Ticks;
+            Windows.Storage.StorageFile sampleFile =
+                await storageFolder.CreateFileAsync(txtFileName.Text + dt + ".csv",
+                    Windows.Storage.CreationCollisionOption.ReplaceExisting);
+          
+            file =
+                await storageFolder.GetFileAsync(txtFileName.Text + dt + ".csv");
+        }
+
+        private async void openFolder_Click(object sender, RoutedEventArgs e)
+        {
+            await Launcher.LaunchFolderAsync(await StorageFolder.GetFolderFromPathAsync(ApplicationData.Current.LocalFolder.Path));
+        }
+
+        private async void saveRecord_Click(object sender, RoutedEventArgs e)
+        {
+            await Windows.Storage.FileIO.WriteLinesAsync(file, lines);
+
+        }
+        int loop = 0;
+        private async void addData_Click(object sender, RoutedEventArgs e)
+        {
+            loop++;
+            Random rand = new Random(DateTime.Now.Millisecond);
+            
+            await webView.InvokeScriptAsync("eval", new string[] { "test('" + loop + "',96, " + rand.Next() % 100 + ")" });
+
+        }
     }
 }

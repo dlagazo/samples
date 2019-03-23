@@ -206,3 +206,7 @@ IoTCoreDefaultApp/IoTCoreDefaultApp.VC.opendb
 IoTConnector/IoTConnector/IoTConnector/IoTConnector_StoreKey.pfx
 IoTConnector/IoTConnector/IoTConnector/Package.StoreAssociation.xml
 /IoTConnector/IoTConnector/IoTConnector/BundleArtifacts
+/SerialUART/CS/.vs/SerialSample/v16/Server/sqlite3/db.lock
+/SerialUART/CS/.vs/SerialSample/v16/Server/sqlite3/storage.ide
+/SerialUART/CS/.vs/SerialSample/v16/Server/sqlite3/storage.ide-shm
+/SerialUART/CS/.vs/SerialSample/v16/Server/sqlite3/storage.ide-wal
