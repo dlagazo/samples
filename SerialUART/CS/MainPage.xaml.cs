@@ -13,7 +13,6 @@ using System.Diagnostics;
 using Windows.System;
 using Windows.Storage;
 using System.Collections.Generic;
-
 namespace SerialSample
 {    
     public sealed partial class MainPage : Page
@@ -47,6 +46,9 @@ namespace SerialSample
             public double pr { get; set; }
         }
 
+        DispatcherTimer dispatcherTimer;
+        bool isConnected = false;
+
         public MainPage()
         {
             
@@ -56,6 +58,95 @@ namespace SerialSample
 
             var uri = new Uri("ms-appx-web:///chart.html");
             webView.Source = uri;
+            dispatcherTimer = new DispatcherTimer();
+            dispatcherTimer.Tick += dispatcherTimer_Tick;
+            dispatcherTimer.Interval = new TimeSpan(0,0,0,0,500);
+            dispatcherTimer.Start();
+        }
+
+       
+       
+
+        // callback runs on UI thread
+        async void dispatcherTimer_Tick(object sender, object e)
+        {
+            string aqs = SerialDevice.GetDeviceSelector();
+            var dis = await DeviceInformation.FindAllAsync(aqs);
+
+            if(dis.Count == 0)
+            {
+                status.Text = "STATUS: DISCONNECTED";
+                isConnected = false;
+            }
+
+           
+            if (!isConnected)
+            {
+                ListAvailablePorts();
+                var selection = ConnectDevices.Items;//.SelectedItems;
+
+                if (selection.Count <= 0)
+                {
+                    status.Text = "Select a device and connect";
+                    isConnected = false;
+                    comPortInput.Content = "START";
+                    statusTxt.Text = "STATUS: DISCONNECTED";
+
+                    return;
+                }
+
+                DeviceInformation entry = (DeviceInformation)selection[0];
+
+                if (comPortInput.Content.ToString() == "RESET")
+                {
+                    sendText.Text = "";
+                    CloseDevice();
+                }
+
+                try
+                {
+                    serialPort = await SerialDevice.FromIdAsync(entry.Id);
+
+                    // Disable the 'Connect' button 
+
+                    comPortInput.Content = "RESET";
+
+                    // Configure serial settings
+                    serialPort.WriteTimeout = TimeSpan.FromMilliseconds(0);
+                    serialPort.ReadTimeout = TimeSpan.FromMilliseconds(0);
+                    serialPort.BaudRate = 9600;
+                    serialPort.Parity = SerialParity.None;
+                    serialPort.StopBits = SerialStopBitCount.One;
+                    serialPort.DataBits = 8;
+                    serialPort.Handshake = SerialHandshake.None;
+
+                    // Display configured settings
+                    status.Text = "Serial port configured successfully: ";
+                    status.Text += serialPort.BaudRate + "-";
+                    status.Text += serialPort.DataBits + "-";
+                    status.Text += serialPort.Parity.ToString() + "-";
+                    status.Text += serialPort.StopBits;
+
+                    // Set the RcvdText field to invoke the TextChanged callback
+                    // The callback launches an async Read task to wait for data
+                    rcvdText.Text = "Waiting for data...";
+
+                    // Create cancellation token object to close I/O operations when closing the device
+                    ReadCancellationTokenSource = new CancellationTokenSource();
+
+                    // Enable 'WRITE' button to allow sending data
+                    //status.Text = "Connected:" + entry.Id.ToString();
+                    Listen();
+                    isConnected = true;
+                }
+                catch (Exception ex)
+                {
+                    status.Text = ex.Message;
+                    comPortInput.IsEnabled = true;
+                }
+            }
+
+           
         }
 
         /// <summary>
@@ -69,12 +160,13 @@ namespace SerialSample
             {
                 string aqs = SerialDevice.GetDeviceSelector();
                 var dis = await DeviceInformation.FindAllAsync(aqs);
-
+                
                 status.Text = "Select a device and connect";
 
                 for (int i = 0; i < dis.Count; i++)
                 {
-                    listOfDevices.Add(dis[i]);
+                    if(dis[i].Id.Contains("FTDIBUS"))
+                        listOfDevices.Add(dis[i]);
                 }
 
                 DeviceListSource.Source = listOfDevices;
@@ -127,8 +219,8 @@ namespace SerialSample
                 comPortInput.Content = "RESET";
 
                 // Configure serial settings
-                serialPort.WriteTimeout = TimeSpan.FromMilliseconds(1000);
-                serialPort.ReadTimeout = TimeSpan.FromMilliseconds(1000);                
+                serialPort.WriteTimeout = TimeSpan.FromMilliseconds(0);
+                serialPort.ReadTimeout = TimeSpan.FromMilliseconds(0);                
                 serialPort.BaudRate = 9600;
                 serialPort.Parity = SerialParity.None;
                 serialPort.StopBits = SerialStopBitCount.One;
@@ -333,10 +425,12 @@ namespace SerialSample
             sendText.Text = "";
             if (bytesRead > 0)
             {
+                statusTxt.Text = "STATUS: CONNECTED";
+
                 //dataReader.ReadBytes(stream);
                 //Convert.ToBase64String(stream);
                 //var read = dataReaderObject.(bytesRead);
-                Byte[] read = new Byte[75*5];
+                Byte[] read = new Byte[75*5*2];
                 readGlobal = read;
                 dataReaderObject.ReadBytes(read);
                 //rcvdText.Text = read;
@@ -348,12 +442,12 @@ namespace SerialSample
                 var str = System.Text.Encoding.UTF8.GetString(read);
                 //if(Byte.Parse(str[0])
                 int ePrdMsb = 0, ePrdLsb = 0;
-                double pleth = 0, spo2 = 0, pr = 0;
+                double pleth = 0, spo2 = 0, pr = 0, spo2bb = 0;
                 if (GetBit(read[0], 0))
                 {
                     for (int j = 0; j < 75; j++)
                     {
-                        if(!GetBit(read[(j * 5)], 4) && !GetBit(read[(j * 5)], 3))
+                        if(true)//(!GetBit(read[(j * 5)], 4) && !GetBit(read[(j * 5)], 3))
                         {
                             var line = "S:" + GetBit(read[(j * 5)], 0) + ", F" + (j + 1) + ", B1:" + read[(j * 5)]
                             + ", B2:" + read[(j * 5) + 1] + ", B3:" + read[(j * 5) + 2] + ", B4:" + read[(j * 5) + 3] + ", B5:" + read[(j * 5) + 4]
@@ -374,12 +468,18 @@ namespace SerialSample
                                 spo2 = read[(j * 5) + 3];
 
                             }
-                            if(j+1 == 20 || j+1 == 45 || j+1 == 70)
+                            if (j + 1 == 11 || j + 1 == 36 || j + 1 == 61)
+                            {
+                                //pleth = ((read[(j * 5) + 1] * 256) + read[(j * 5) + 2]) / 65535 * 100;
+                                spo2bb = read[(j * 5) + 3];
+
+                            }
+                            if (j+1 == 20 || j+1 == 45 || j+1 == 70)
                             {
                                 pr = Convert.ToInt32(GetBit(read[((j) * 5) + 3], 1)) * 256 + Convert.ToInt32(GetBit(read[((j) * 5) + 3], 0)) * 128 + read[((j+1) * 5) + 3];
-                                lines.Add(count +"," + spo2 + "," + pr);
+                                lines.Add(count +"," + spo2 + "," + pr + "," + spo2bb );
                                 count++;
-                                await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2 + ", " + pr + ")" });
+                                await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2 + ", " + pr + ", " + spo2bb + ")" });
                                 //chartData.Add(new ChartData { spo2 = spo2, pr = pr });
                             }
 
@@ -400,7 +500,7 @@ namespace SerialSample
                 
 
             }
-
+           
         }
 
         private string getValue(int j, byte val)

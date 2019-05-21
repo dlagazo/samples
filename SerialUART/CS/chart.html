@@ -13,14 +13,22 @@
     </div>
     <br>
     <br>
-    
-    <button id="randomizeData">Randomize Data</button>
-    <button id="addDataset">Add Dataset</button>
+    <input style="width:50px" id="setX1" value="X1" />
+
+    <input style="width:50px" id="setY1" value="Y1" />
+
+    <input style="width:50px" id="setX2" value="X2" />
+
+    <input style="width:50px" id="setY2" value="Y2" />
+    <button id="calculateSlope" onclick="getSlope()">Get Slope</button>
+    <input style="width:150px" id="setSlope" value="Slope: " />
+
     <button id="removeDataset">Remove Dataset</button>
     <button id="addData">Add Data</button>
-    <button id="removeData">Remove Data</button>
+    <button id="removeData" onclick="removeData()">Remove Data</button>
     <script>
-        var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+     var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    var count = 0;
         var config = {
             type: 'line',
             data: {
@@ -30,7 +38,7 @@
                     backgroundColor: window.chartColors.red,
                     borderColor: window.chartColors.red,
                     data: [0
-                        
+
                     ],
                     fill: false,
                 }, {
@@ -39,7 +47,15 @@
                     backgroundColor: window.chartColors.blue,
                     borderColor: window.chartColors.blue,
                     data: [0
-                       
+
+                    ],
+                }, {
+                    label: 'SPO2-BB',
+                    fill: false,
+                    backgroundColor: window.chartColors.green,
+                    borderColor: window.chartColors.green,
+                    data: [0
+
                     ],
                 }]
             },
@@ -76,10 +92,24 @@
             }
         };
 
+
         window.onload = function () {
-            var ctx = document.getElementById('canvas').getContext('2d');
+                    var ctx = document.getElementById('canvas').getContext('2d');
+
+
             window.myLine = new Chart(ctx, config);
+
         };
+
+    function getSlope() {
+        var x1 = document.getElementById('setX1').value;
+                var x2 = document.getElementById('setX2').value;
+        var y1 = document.getElementById('setY1').value;
+        var y2 = document.getElementById('setY2').value;
+
+        document.getElementById('setSlope').value = "Slope: " + (y2 - y1) / ((x2 - x1) / 3);
+        }
+
 
         document.getElementById('randomizeData').addEventListener('click', function () {
             config.data.datasets.forEach(function (dataset) {
@@ -132,22 +162,31 @@
             window.myLine.update();
         });
 
-        document.getElementById('removeData').addEventListener('click', function () {
-            config.data.labels.splice(-1, 1); // remove the label first
-            config.data.labels = [];
-
-            config.data.datasets[0].data = [];
-             config.data.datasets[1].data = [];
+        document.getElementById('setY1').addEventListener('click', function () {
+            config.data.datasets.splice(0, 1);
             window.myLine.update();
         });
 
-        function test(val, spo2, pr)
-        {
-            config.data.labels.push(val);
+        function removeData() {
+            config.data.labels.splice(-1, 1); // remove the label first
+            config.data.labels = [];
+            count = 0;
+            config.data.datasets[0].data = [];
+            config.data.datasets[1].data = [];
+            config.data.datasets[2].data = [];
+            window.myLine = new Chart(ctx, config);
+            window.myLine.update();
+        };
 
-            config.data.datasets[0].data.push(spo2);
-            config.data.datasets[1].data.push(pr);
-                window.myLine.update();
+        function test(val, spo2, pr, spo2bb) {
+            config.data.labels.push(count);
+
+            //config.data.datasets[0].data.push(spo2);
+            //sconfig.data.datasets[1].data.push(pr);
+            config.data.datasets[2].data.push(spo2bb);
+
+            window.myLine.update();
+            count++;
         }
     </script>
 </body>

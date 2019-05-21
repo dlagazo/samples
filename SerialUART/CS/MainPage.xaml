@@ -41,8 +41,8 @@
             <TextBlock Text="Select Device:" HorizontalAlignment="Left" VerticalAlignment="Top"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Margin="70,0,0,0" Width="400" Height="20">
-            <ListBox x:Name="ConnectDevices" ScrollViewer.HorizontalScrollMode="Enabled" ScrollViewer.HorizontalScrollBarVisibility="Visible" ItemsSource="{Binding Source={StaticResource DeviceListSource}}" Width="400" Height="20" Background="Gray">
+        <StackPanel Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Margin="70,0,0,0" Width="400" Height="50">
+            <ListBox x:Name="ConnectDevices" ScrollViewer.HorizontalScrollMode="Enabled" ScrollViewer.HorizontalScrollBarVisibility="Visible" ItemsSource="{Binding Source={StaticResource DeviceListSource}}" Width="400" Height="50" Background="Gray">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{Binding Id}" />
@@ -61,8 +61,8 @@
             <Button Name="addData" Content="Add Data" Click="addData_Click" FontSize="8" Margin="5,0,5,0"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal" Height="20" Width="75">
-            <TextBlock Text="Write Data:" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        <StackPanel Grid.Row="3" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Height="20" Width="200">
+            <TextBlock Text="Status: Disconnected" HorizontalAlignment="Left" VerticalAlignment="Top" Name="statusTxt"/>
         </StackPanel>
 
         <StackPanel Grid.Row="4" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Margin="0,0,0,0" Width="600" Height="830">
