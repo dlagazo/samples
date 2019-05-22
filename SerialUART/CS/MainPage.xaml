@@ -53,12 +53,11 @@
 
         <StackPanel Grid.Row="2" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Margin="0,0,0,0" Height="30" Width="450">
 
-            <Button Name="comPortInput" Content="START" Click="comPortInput_Click" FontSize="8" Margin="5,0,5,0"/>
+            <Button Name="comPortInput" Content="RESET" Click="reset" FontSize="15" Margin="5,0,5,0"/>
             <TextBox Name="txtFileName" Text="Patient Name"/>
-            <Button Name="saveFile" Content="Create File" Click="saveFile_Click" FontSize="8" Margin="5,0,5,0"/>
-            <Button Name="saveContents" Content="Save Record" Click="saveRecord_Click" FontSize="8" Margin="5,0,5,0"/>
-            <Button Name="openFolder" Content="Open Folder" Click="openFolder_Click" FontSize="8" Margin="5,0,5,0"/>
-            <Button Name="addData" Content="Add Data" Click="addData_Click" FontSize="8" Margin="5,0,5,0"/>
+            <Button Name="saveFile" Content="Create File" Click="saveFile_Click" FontSize="15" Margin="5,0,5,0"/>
+            <Button Name="saveContents" Content="Save Record" Click="saveRecord_Click" FontSize="15" Margin="5,0,5,0"/>
+            <Button Name="openFolder" Content="Open Folder" Click="openFolder_Click" FontSize="15" Margin="5,0,5,0"/>
         </StackPanel>
 
         <StackPanel Grid.Row="3" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Height="20" Width="200">

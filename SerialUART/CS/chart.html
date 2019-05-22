@@ -178,6 +178,18 @@
             window.myLine.update();
         };
 
+
+        function reset() {
+            config.data.labels.splice(-1, 1); // remove the label first
+            config.data.labels = [];
+            count = 0;
+            config.data.datasets[0].data = [];
+            config.data.datasets[1].data = [];
+            config.data.datasets[2].data = [];
+            window.myLine = new Chart(ctx, config);
+            window.myLine.update();
+        }
+
         function test(val, spo2, pr, spo2bb) {
             config.data.labels.push(count);
 

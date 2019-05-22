@@ -252,6 +252,15 @@ namespace SerialSample
             }
         }
 
+        private async void reset(object sender, RoutedEventArgs e)
+        {
+            lines = new List<string>();
+            count = 0;
+            //await webView.InvokeScriptAsync("eval", new string[] { "removeData()" });
+            await webView.InvokeScriptAsync("eval", new string[] { "reset()" });
+
+        }
+
         /// <summary>
         /// sendTextButton_Click: Action to take when 'WRITE' button is clicked
         /// - Create a DataWriter object with the OutputStream of the SerialDevice
@@ -477,7 +486,9 @@ namespace SerialSample
                             if (j+1 == 20 || j+1 == 45 || j+1 == 70)
                             {
                                 pr = Convert.ToInt32(GetBit(read[((j) * 5) + 3], 1)) * 256 + Convert.ToInt32(GetBit(read[((j) * 5) + 3], 0)) * 128 + read[((j+1) * 5) + 3];
-                                lines.Add(count +"," + spo2 + "," + pr + "," + spo2bb );
+                                //lines.Add(count * 0.333 + "," + spo2 + "," + pr + "," + spo2bb );
+                                lines.Add(count * 0.333 + "," + spo2bb);
+
                                 count++;
                                 await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2 + ", " + pr + ", " + spo2bb + ")" });
                                 //chartData.Add(new ChartData { spo2 = spo2, pr = pr });
