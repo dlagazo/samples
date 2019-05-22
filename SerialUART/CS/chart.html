@@ -2,8 +2,9 @@
 
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <script src="https://www.chartjs.org/dist/2.8.0/Chart.min.js"></script>
-    <script src="https://www.chartjs.org/samples/latest/utils.js"></script>
+    <script src="/Assets/Chart.min.js"></script>
+    <script src="/Assets/utils.js"></script>
+
     <meta charset="utf-8" />
     <title></title>
 </head>
@@ -191,7 +192,7 @@
         }
 
         function test(val, spo2, pr, spo2bb) {
-            config.data.labels.push(count);
+            config.data.labels.push(parseFloat(count * 0.333).toFixed(2));
 
             //config.data.datasets[0].data.push(spo2);
             //sconfig.data.datasets[1].data.push(pr);

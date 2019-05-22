@@ -257,7 +257,7 @@ namespace SerialSample
             lines = new List<string>();
             count = 0;
             //await webView.InvokeScriptAsync("eval", new string[] { "removeData()" });
-            await webView.InvokeScriptAsync("eval", new string[] { "reset()" });
+            webView.Refresh();//.InvokeScriptAsync("eval", new string[] { "reset()" });
 
         }
 
