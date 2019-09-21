@@ -48,6 +48,7 @@ namespace SerialSample
 
         DispatcherTimer dispatcherTimer;
         DispatcherTimer testTimer;
+        DispatcherTimer readTimer;
         bool isConnected = false;
 
         public MainPage()
@@ -59,11 +60,12 @@ namespace SerialSample
 
             var uri = new Uri("ms-appx-web:///chart.html");
             webView.Source = uri;
+            
             dispatcherTimer = new DispatcherTimer();
             dispatcherTimer.Tick += dispatcherTimer_Tick;
             dispatcherTimer.Interval = new TimeSpan(0,0,0,0,500);
             dispatcherTimer.Start();
-
+            
 
         }
 
@@ -76,38 +78,48 @@ namespace SerialSample
             string aqs = SerialDevice.GetDeviceSelector();
             var dis = await DeviceInformation.FindAllAsync(aqs);
 
+            ListAvailablePorts();
+
             if(dis.Count == 0)
             {
                 status.Text = "STATUS: DISCONNECTED";
                 isConnected = false;
+                serialPort = null;
             }
 
            
-            if (!isConnected)
+            
+
+           
+        }
+
+        private async void connect(object sender, RoutedEventArgs e)
+        {
+            try
             {
-                ListAvailablePorts();
-                var selection = ConnectDevices.Items;//.SelectedItems;
-
-                if (selection.Count <= 0)
+                if (!isConnected)
                 {
-                    status.Text = "Select a device and connect";
-                    isConnected = false;
-                    comPortInput.Content = "START";
-                    statusTxt.Text = "STATUS: DISCONNECTED";
+                    ListAvailablePorts();
+                    var selection = ConnectDevices.Items;//.SelectedItems;
 
-                    return;
-                }
+                    if (selection.Count <= 0)
+                    {
+                        status.Text = "Select a device and connect";
+                        isConnected = false;
+                        comPortInput.Content = "START";
+                        statusTxt.Text = "STATUS: DISCONNECTED";
 
-                DeviceInformation entry = (DeviceInformation)selection[0];
+                        return;
+                    }
 
-                if (comPortInput.Content.ToString() == "RESET")
-                {
-                    sendText.Text = "";
-                    CloseDevice();
-                }
+                    DeviceInformation entry = (DeviceInformation)selection[0];
 
-                try
-                {
+                    if (comPortInput.Content.ToString() == "RESET")
+                    {
+                        sendText.Text = "";
+                        CloseDevice();
+                    }
+
                     serialPort = await SerialDevice.FromIdAsync(entry.Id);
 
                     // Disable the 'Connect' button 
@@ -141,15 +153,17 @@ namespace SerialSample
                     //status.Text = "Connected:" + entry.Id.ToString();
                     Listen();
                     isConnected = true;
+                    statusTxt.Text = "STATUS: CONNECTED";
                 }
-                catch (Exception ex)
-                {
-                    status.Text = ex.Message;
-                    comPortInput.IsEnabled = true;
-                }
-            }
 
-           
+                
+
+            }
+            catch (Exception ex)
+            {
+                status.Text = ex.Message;
+                comPortInput.IsEnabled = true;
+            }
         }
 
         /// <summary>
@@ -260,14 +274,11 @@ namespace SerialSample
         private async void reset(object sender, RoutedEventArgs e)
         {
             cycle = 0;
-            testTimer = new DispatcherTimer();
-            testTimer.Tick += testTimer_Tick;
-            testTimer.Interval = new TimeSpan(0, 0, 0, 0, 1000);
-            testTimer.Start();
+           
             lines = new List<string>();
             count = 0;
             
-            //await webView.InvokeScriptAsync("eval", new string[] { "removeData()" });
+            await webView.InvokeScriptAsync("eval", new string[] { "reset()" });
             webView.Refresh();//.InvokeScriptAsync("eval", new string[] { "reset()" });
 
         }
@@ -394,6 +405,16 @@ namespace SerialSample
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
+        /// 
+        private async void readTimer_Tick(object sender, object e)
+        {
+            try
+            {
+                await ReadAsync(ReadCancellationTokenSource.Token);
+
+            }
+            catch(Exception ex) { }
+        }
         private async void Listen()
         {
             try
@@ -404,12 +425,25 @@ namespace SerialSample
                     //dataWriteObject = new DataWriter(serialPort.OutputStream);
                     dataReaderObject = new DataReader(serialPort.InputStream);
                     //await WriteCmd();
-
-                    // keep reading the serial input
-                    while (true)
+                 
+                    while(true)
                     {
                         await ReadAsync(ReadCancellationTokenSource.Token);
+                        //Thread.Sleep(1000);
                     }
+                
+
+                    readTimer = new DispatcherTimer();
+                    readTimer.Tick += readTimer_Tick;
+                    readTimer.Interval = new TimeSpan(0, 0, 0, 0, 1000);
+                    readTimer.Start();
+                    /*
+                    readTimer = new DispatcherTimer();
+                    readTimer.Tick += readTimer_Tick;
+                    readTimer.Interval = new TimeSpan(0, 0, 0, 0, 13);
+                    readTimer.Start();
+                    */
+
                 }
             }
             catch (Exception ex)
@@ -447,7 +481,7 @@ namespace SerialSample
         {
             Task<UInt32> loadAsyncTask;
 
-            uint ReadBufferLength = 1024;
+            uint ReadBufferLength = 25*5;
 
             // If task cancellation was requested, comply
             cancellationToken.ThrowIfCancellationRequested();
@@ -455,6 +489,91 @@ namespace SerialSample
             // Set InputStreamOptions to complete the asynchronous read operation when one or more bytes is available
             dataReaderObject.InputStreamOptions = InputStreamOptions.Partial;
            
+            // Create a task object to wait for data on the serialPort.InputStream
+            loadAsyncTask = dataReaderObject.LoadAsync(ReadBufferLength).AsTask(cancellationToken);
+
+            // Launch the task and wait
+            UInt32 bytesRead = await loadAsyncTask;
+            sendText.Text = "";
+            if (bytesRead > 0)
+            {
+                statusTxt.Text = "STATUS: CONNECTED";
+
+                //dataReader.ReadBytes(stream);
+                //Convert.ToBase64String(stream);
+                //var read = dataReaderObject.(bytesRead);
+                Byte[] read = new Byte[25*5];
+                readGlobal = read;
+                dataReaderObject.ReadBytes(read);
+                //rcvdText.Text = read;
+                //            rcvdText.Text = dataReaderObject.ReadString(bytesRead);
+                //byte[] read = new byte[1024];
+                //dataReaderObject.ReadBytes(read);
+                rcvdText.Text = System.Text.Encoding.UTF8.GetString(read);
+                //status.Text = "bytes read successfully!";
+                var str = System.Text.Encoding.UTF8.GetString(read);
+                //if(Byte.Parse(str[0])
+                int ePrdMsb = 0, ePrdLsb = 0;
+                double pleth = 0, spo2 = 0, pr = 0, spo2bb = 0;
+                if(true)//if (GetBit(read[0], 0))
+                {
+                    for (int j = 0; j < 25; j++)
+                    {
+                        if(true)//(!GetBit(read[(j * 5)], 4) && !GetBit(read[(j * 5)], 3))
+                        {
+                            var line = "S:" + GetBit(read[(j * 5)], 0) + ", F" + (j + 1) + ", B1:" + read[(j * 5)]
+                            + ", B2:" + read[(j * 5) + 1] + ", B3:" + read[(j * 5) + 2] + ", B4:" + read[(j * 5) + 3] + ", B5:" + read[(j * 5) + 4]
+                            + ", OOT:" + GetBit(read[(j * 5)], 4) + ", SNSA:" + GetBit(read[(j * 5)], 3)
+                            + ", PLETH:" + ((read[(j * 5) + 1] * 256) + read[(j * 5) + 2]) + getValue(j + 1, read[(j * 5) + 3]);
+                            //105 + 102 = 134
+                            //" RPRF:" + GetBit(read[(j * 5)], 2)
+                            //+ "\r\n";
+                            
+                            sendText.Text += line + "\r\n";
+                            //count++;
+                            //await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2 + ", " + 0 + ", " + spo2bb + ")"
+                           if(GetBit(read[(j * 5)], 0))
+                            {
+                                spo2 = read[(j * 5) + 13];
+                                if(spo2 < 100)
+                                    await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2  + ", " + 0 + ", " + spo2 + ")" });
+                                else
+                                    await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + 0 + ", " + 0 + ", " + 0 + ")" });
+
+                            }
+                            //lines.Add(line);
+                            //await Windows.Storage.FileIO.WriteTextAsync(file, line);
+                        }
+                            
+                    }
+                   
+                }
+                else
+                {
+                    CloseDevice();
+                    sendText.Text += "BAD DATA: PLEASE RETRY CONNECTION";
+                }
+             
+                Debug.WriteLine("E-PR-D:" + ((ePrdMsb + ePrdLsb) * 282/65535) + 18);
+                
+                
+
+            }
+           
+        }
+
+        private async Task Read1Async(CancellationToken cancellationToken)
+        {
+            Task<UInt32> loadAsyncTask;
+
+            uint ReadBufferLength = 75*5;
+
+            // If task cancellation was requested, comply
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Set InputStreamOptions to complete the asynchronous read operation when one or more bytes is available
+            dataReaderObject.InputStreamOptions = InputStreamOptions.Partial;
+
             // Create a task object to wait for data on the serialPort.InputStream
             loadAsyncTask = dataReaderObject.LoadAsync(ReadBufferLength).AsTask(cancellationToken);
 
@@ -481,79 +600,41 @@ namespace SerialSample
                 //if(Byte.Parse(str[0])
                 int ePrdMsb = 0, ePrdLsb = 0;
                 double pleth = 0, spo2 = 0, pr = 0, spo2bb = 0;
-                if (GetBit(read[0], 0))
+                if (true)//if (GetBit(read[0], 0))
                 {
+                    //await webView.InvokeScriptAsync("eval", new string[] { "reset()" });
+                    count = 0;
                     for (int j = 0; j < 75; j++)
                     {
-                        if(true)//(!GetBit(read[(j * 5)], 4) && !GetBit(read[(j * 5)], 3))
+                        if (true)//(!GetBit(read[(j * 5)], 4) && !GetBit(read[(j * 5)], 3))
                         {
-                            var line = "S:" + GetBit(read[(j * 5)], 0) + ", F" + (j + 1) + ", B1:" + read[(j * 5)]
-                            + ", B2:" + read[(j * 5) + 1] + ", B3:" + read[(j * 5) + 2] + ", B4:" + read[(j * 5) + 3] + ", B5:" + read[(j * 5) + 4]
-                            + ", OOT:" + GetBit(read[(j * 5)], 4) + ", SNSA:" + GetBit(read[(j * 5)], 3)
-                            + ", PLETH:" + ((read[(j * 5) + 1] * 256) + read[(j * 5) + 2]) + getValue(j + 1, read[(j * 5) + 3]);
-                            //105 + 102 = 134
-                            //" RPRF:" + GetBit(read[(j * 5)], 2)
-                            //+ "\r\n";
-                                if ((j + 1) == 22)
-                                    ePrdMsb = read[(j * 5) + 3] * 256;
-                                else if ((j + 1) == 23)
-                                    ePrdLsb = read[(j * 5) + 3];
-                            sendText.Text += line + "\r\n";
+                            
+                            decimal waveForm = ((read[(j*5)+1] * 256) + read[(j*5)+2])/65535*100;
 
-                            if (j + 1 == 3 || j+1 == 28 || j+1 == 53)
-                            {
-                                //pleth = ((read[(j * 5) + 1] * 256) + read[(j * 5) + 2]) / 65535 * 100;
-                                spo2 = read[(j * 5) + 3];
-
-                            }
-                            if (j + 1 == 11 || j + 1 == 36 || j + 1 == 61)
-                            {
-                                //pleth = ((read[(j * 5) + 1] * 256) + read[(j * 5) + 2]) / 65535 * 100;
-                                spo2bb = read[(j * 5) + 3];
-
-                            }
-                            if (j+1 == 20 || j+1 == 45 || j+1 == 70)
-                            {
-                                pr = Convert.ToInt32(GetBit(read[((j) * 5) + 3], 1)) * 256 + Convert.ToInt32(GetBit(read[((j) * 5) + 3], 0)) * 128 + read[((j+1) * 5) + 3];
-                                //lines.Add(count * 0.333 + "," + spo2 + "," + pr + "," + spo2bb );
-                                if(spo2bb > 0 && spo2bb <= 100)
-                                {
-                                    lines.Add(count * 0.333 + "," + spo2bb + "," + cycle);
-
-                                    count++;
-                                    await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2 + ", " + 0 + ", " + spo2bb + ")" });
-                                }
-                                else
-                                {
-                                    lines.Add(count * 0.333 + "," + 0 + "," + cycle);
-
-                                    count++;
-                                    await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + 0 + ", " + 0 + ", " + 0 + ")" });
-                                }
-                                    
-                                //chartData.Add(new ChartData { spo2 = spo2, pr = pr });
-                            }
+                            await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + waveForm + ", " + 0 + ", " + waveForm + ")" });
+                            count++;
+                            
 
                             //lines.Add(line);
                             //await Windows.Storage.FileIO.WriteTextAsync(file, line);
                         }
-                            
+
                     }
-                   
+
                 }
                 else
                 {
                     CloseDevice();
                     sendText.Text += "BAD DATA: PLEASE RETRY CONNECTION";
                 }
-             
-                Debug.WriteLine("E-PR-D:" + ((ePrdMsb + ePrdLsb) * 282/65535) + 18);
-                
-                
+
+
+
 
             }
-           
+
         }
+
 
         private string getValue(int j, byte val)
         {

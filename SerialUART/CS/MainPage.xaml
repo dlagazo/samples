@@ -16,8 +16,9 @@
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="228"/>
+            <ColumnDefinition Width="11"/>
+            <ColumnDefinition Width="Auto" MinWidth="1762"/>
         </Grid.ColumnDefinitions>
 
         <Grid.RowDefinitions>
@@ -35,14 +36,14 @@
 
         <TextBlock x:Name="pageTitle" Text="TMC
                    " Style="{StaticResource HeaderTextBlockStyle}" 
-                        IsHitTestVisible="false" HorizontalAlignment="Center" VerticalAlignment="Center" Height="61" Width="261"/>
+                        IsHitTestVisible="false" HorizontalAlignment="Left" VerticalAlignment="Center" Height="61" Width="261" Margin="89,0,0,0" Grid.ColumnSpan="3"/>
 
-        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal" Height="20" Width="91">
+        <StackPanel Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Height="20" Width="91">
             <TextBlock Text="Select Device:" HorizontalAlignment="Left" VerticalAlignment="Top"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Margin="70,0,0,0" Width="400" Height="50">
-            <ListBox x:Name="ConnectDevices" ScrollViewer.HorizontalScrollMode="Enabled" ScrollViewer.HorizontalScrollBarVisibility="Visible" ItemsSource="{Binding Source={StaticResource DeviceListSource}}" Width="400" Height="50" Background="Gray">
+        <StackPanel Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Width="200" Height="50">
+            <ListBox x:Name="ConnectDevices" ScrollViewer.HorizontalScrollMode="Enabled" ScrollViewer.HorizontalScrollBarVisibility="Visible" ItemsSource="{Binding Source={StaticResource DeviceListSource}}" Width="200" Height="50" Background="Gray">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{Binding Id}" />
@@ -51,10 +52,12 @@
             </ListBox>
         </StackPanel>
 
-        <StackPanel Grid.Row="2" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Margin="0,0,0,0" Height="50" Width="600">
+        <StackPanel Grid.Row="2" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Height="50" Width="600">
             <TextBox Name="txtTimer" Text="Timer" FontSize="30"/>
 
-            <Button Name="comPortInput" Content="RESET" Click="reset" FontSize="15" Margin="5,0,5,0"/>
+            <Button Name="comPortInput" Content="CONNECT" Click="connect" FontSize="15" Margin="5,0,5,0"/>
+            <Button Name="reseT" Content="RESET" Click="reset" FontSize="15" Margin="5,0,5,0"/>
+
             <TextBox Name="txtFileName" Text="Patient Name"/>
             <Button Name="saveFile" Content="Create File" Click="saveFile_Click" FontSize="15" Margin="5,0,5,0"/>
             <Button Name="saveContents" Content="Save Record" Click="saveRecord_Click" FontSize="15" Margin="5,0,5,0"/>
@@ -65,25 +68,25 @@
             <TextBlock Text="Status: Disconnected" HorizontalAlignment="Left" VerticalAlignment="Top" Name="statusTxt"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="4" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Margin="0,0,0,0" Width="600" Height="830">
-            <TextBlock Name="sendText" Width="600" Height="830" FontSize="11"/>
+        <StackPanel Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Width="200" Height="830" Margin="-1,0,0,0">
+            <TextBlock Name="sendText" Width="200" Height="830" FontSize="11"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="4" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Margin="0,0,0,0" Height="900" Width="1400">
-            <WebView x:Name="webView"  Height="900" Width="1400">
+        <StackPanel Grid.Row="4" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Height="900" Width="1400">
+            <WebView x:Name="webView"  Height="903" Width="1000">
 
             </WebView>
         </StackPanel>
 
-        <StackPanel Grid.Row="5" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal" Height="20" Width="72">
+        <StackPanel Grid.Row="5" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Height="20" Width="72" Margin="10,0,0,0" Grid.Column="2">
             <TextBlock Text="Read Data:" HorizontalAlignment="Left" VerticalAlignment="Top"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="6" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Margin="120,0,0,0" Width="300" Height="50">
+        <StackPanel Grid.Row="6" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal" Margin="120,0,0,0" Width="300" Height="50" Grid.ColumnSpan="3">
             <TextBox x:Name="rcvdText" Width="300" Height="50"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="102,20,0,0" Width="460" Height="40">
+        <StackPanel Grid.Row="7" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="102,20,0,0" Width="460" Height="40" Grid.ColumnSpan="3">
             <TextBox
                 x:Name="status" TextWrapping="Wrap" IsReadOnly="True" Width="460" Height="40" HorizontalAlignment="Left" VerticalAlignment="Top" 
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" BorderBrush="White"/>
