@@ -47,6 +47,7 @@ namespace SerialSample
         }
 
         DispatcherTimer dispatcherTimer;
+        DispatcherTimer testTimer;
         bool isConnected = false;
 
         public MainPage()
@@ -62,6 +63,8 @@ namespace SerialSample
             dispatcherTimer.Tick += dispatcherTimer_Tick;
             dispatcherTimer.Interval = new TimeSpan(0,0,0,0,500);
             dispatcherTimer.Start();
+
+
         }
 
        
@@ -252,15 +255,41 @@ namespace SerialSample
             }
         }
 
+        int cycle = 0;
+        int timerSeconds = 180;
         private async void reset(object sender, RoutedEventArgs e)
         {
+            cycle = 0;
+            testTimer = new DispatcherTimer();
+            testTimer.Tick += testTimer_Tick;
+            testTimer.Interval = new TimeSpan(0, 0, 0, 0, 1000);
+            testTimer.Start();
             lines = new List<string>();
             count = 0;
+            
             //await webView.InvokeScriptAsync("eval", new string[] { "removeData()" });
             webView.Refresh();//.InvokeScriptAsync("eval", new string[] { "reset()" });
 
         }
 
+        private async void testTimer_Tick(object sender, object e)
+        {
+            txtTimer.Text = timerSeconds.ToString();
+            timerSeconds--;
+            if(timerSeconds == 0)
+            {
+                if(cycle < 2)
+                {
+                    cycle++;
+                    timerSeconds = 180;
+                }
+                    
+                else
+                {
+                    txtTimer.Text = "END";
+                }
+            }
+        }
         /// <summary>
         /// sendTextButton_Click: Action to take when 'WRITE' button is clicked
         /// - Create a DataWriter object with the OutputStream of the SerialDevice
@@ -439,7 +468,7 @@ namespace SerialSample
                 //dataReader.ReadBytes(stream);
                 //Convert.ToBase64String(stream);
                 //var read = dataReaderObject.(bytesRead);
-                Byte[] read = new Byte[75*5*2];
+                Byte[] read = new Byte[75*5];
                 readGlobal = read;
                 dataReaderObject.ReadBytes(read);
                 //rcvdText.Text = read;
@@ -487,10 +516,21 @@ namespace SerialSample
                             {
                                 pr = Convert.ToInt32(GetBit(read[((j) * 5) + 3], 1)) * 256 + Convert.ToInt32(GetBit(read[((j) * 5) + 3], 0)) * 128 + read[((j+1) * 5) + 3];
                                 //lines.Add(count * 0.333 + "," + spo2 + "," + pr + "," + spo2bb );
-                                lines.Add(count * 0.333 + "," + spo2bb);
+                                if(spo2bb > 0 && spo2bb <= 100)
+                                {
+                                    lines.Add(count * 0.333 + "," + spo2bb + "," + cycle);
 
-                                count++;
-                                await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2 + ", " + pr + ", " + spo2bb + ")" });
+                                    count++;
+                                    await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2 + ", " + 0 + ", " + spo2bb + ")" });
+                                }
+                                else
+                                {
+                                    lines.Add(count * 0.333 + "," + 0 + "," + cycle);
+
+                                    count++;
+                                    await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + 0 + ", " + 0 + ", " + 0 + ")" });
+                                }
+                                    
                                 //chartData.Add(new ChartData { spo2 = spo2, pr = pr });
                             }
 
@@ -499,6 +539,7 @@ namespace SerialSample
                         }
                             
                     }
+                   
                 }
                 else
                 {

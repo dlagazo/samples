@@ -14,13 +14,8 @@
     </div>
     <br>
     <br>
-    <input style="width:50px" id="setX1" value="X1" />
-
-    <input style="width:50px" id="setY1" value="Y1" />
-
-    <input style="width:50px" id="setX2" value="X2" />
-
-    <input style="width:50px" id="setY2" value="Y2" />
+   
+    
     <button id="calculateSlope" onclick="getSlope()">Get Slope</button>
     <input style="width:150px" id="setSlope" value="Slope: " />
 
@@ -28,8 +23,8 @@
     <button id="addData">Add Data</button>
     <button id="removeData" onclick="removeData()">Remove Data</button>
     <script>
-     var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    var count = 0;
+        var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        var count = 0;
         var config = {
             type: 'line',
             data: {
@@ -95,20 +90,20 @@
 
 
         window.onload = function () {
-                    var ctx = document.getElementById('canvas').getContext('2d');
+            var ctx = document.getElementById('canvas').getContext('2d');
 
 
             window.myLine = new Chart(ctx, config);
 
         };
 
-    function getSlope() {
-        var x1 = document.getElementById('setX1').value;
-                var x2 = document.getElementById('setX2').value;
-        var y1 = document.getElementById('setY1').value;
-        var y2 = document.getElementById('setY2').value;
+        function getSlope() {
+            var x1 = document.getElementById('setX1').value;
+            var x2 = document.getElementById('setX2').value;
+            var y1 = document.getElementById('setY1').value;
+            var y2 = document.getElementById('setY2').value;
 
-        document.getElementById('setSlope').value = "Slope: " + (y2 - y1) / ((x2 - x1) / 3);
+            document.getElementById('setSlope').value = "Slope: " + (y2 - y1) / ((x2 - x1) / 3);
         }
 
 
@@ -195,7 +190,7 @@
             config.data.labels.push(parseFloat(count * 0.333).toFixed(2));
 
             //config.data.datasets[0].data.push(spo2);
-            //sconfig.data.datasets[1].data.push(pr);
+            //config.data.datasets[1].data.push(pr);
             config.data.datasets[2].data.push(spo2bb);
 
             window.myLine.update();
