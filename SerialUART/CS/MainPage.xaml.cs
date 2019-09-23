@@ -270,7 +270,8 @@ namespace SerialSample
         }
 
         int cycle = 0;
-        int timerSeconds = 180;
+        int timerSeconds = 10;
+        int phase = 0;
         private async void reset(object sender, RoutedEventArgs e)
         {
             cycle = 0;
@@ -278,8 +279,8 @@ namespace SerialSample
             lines = new List<string>();
             count = 0;
             
-            await webView.InvokeScriptAsync("eval", new string[] { "reset()" });
-            webView.Refresh();//.InvokeScriptAsync("eval", new string[] { "reset()" });
+             webView.InvokeScriptAsync("eval", new string[] { "removeData();" });
+           
 
         }
 
@@ -287,17 +288,29 @@ namespace SerialSample
         {
             txtTimer.Text = timerSeconds.ToString();
             timerSeconds--;
-            if(timerSeconds == 0)
+            if (phase == 0)
+                txtPhase.Text = "Phase: Baseline";
+            else if (phase == 1)
+                txtPhase.Text = "Phase: Inflated";
+            else if (phase == 2)
+                txtPhase.Text = "Phase: Deflated";
+
+            if (timerSeconds == 0)
             {
-                if(cycle < 2)
+                if(phase == 2)
                 {
                     cycle++;
-                    timerSeconds = 180;
+                    timerSeconds = 10;
+                    phase = 0;
+                    testTimer.Stop();
+                    txtRun.Text = "Run:" + cycle;
                 }
                     
                 else
                 {
-                    txtTimer.Text = "END";
+
+                    timerSeconds = 10;
+                    phase++;
                 }
             }
         }
@@ -536,12 +549,23 @@ namespace SerialSample
                             {
                                 spo2 = read[(j * 5) + 13];
                                 if(spo2 < 100)
-                                    await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2  + ", " + 0 + ", " + spo2 + ")" });
+                                {
+                                    await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + spo2 + ", " + 0 + ", " + spo2 + ")" });
+                                    decimal secondTime = Convert.ToDecimal(count * .33);
+
+                                    lines.Add(secondTime + "," + spo2);
+                                    count++;
+
+                                }
                                 else
+                                {
                                     await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + 0 + ", " + 0 + ", " + 0 + ")" });
+                                    decimal secondTime = Convert.ToDecimal(count * .33);
+                                    lines.Add(secondTime + "," + 0);
+                                    count++;
+                                }
 
                             }
-                            //lines.Add(line);
                             //await Windows.Storage.FileIO.WriteTextAsync(file, line);
                         }
                             
@@ -612,11 +636,12 @@ namespace SerialSample
                             decimal waveForm = ((read[(j*5)+1] * 256) + read[(j*5)+2])/65535*100;
 
                             await webView.InvokeScriptAsync("eval", new string[] { "test('" + count + "'," + waveForm + ", " + 0 + ", " + waveForm + ")" });
+                            lines.Add(count*.33 + "," + spo2);
+                            //await Windows.Storage.FileIO.WriteTextAsync(file, count * .33 + "," + spo2);
+
                             count++;
                             
 
-                            //lines.Add(line);
-                            //await Windows.Storage.FileIO.WriteTextAsync(file, line);
                         }
 
                     }
@@ -698,7 +723,8 @@ namespace SerialSample
 
             comPortInput.IsEnabled = true;
             rcvdText.Text = "";
-            listOfDevices.Clear();               
+            //listOfDevices.Clear();   
+            comPortInput.Content = "CONNECT DEVICE";
         }
 
         /// <summary>
@@ -754,6 +780,14 @@ namespace SerialSample
             
             await webView.InvokeScriptAsync("eval", new string[] { "test('" + loop + "',96, " + rand.Next() % 100 + ")" });
 
+        }
+
+        private void start(object sender, RoutedEventArgs e)
+        {
+            testTimer = new DispatcherTimer();
+            testTimer.Tick += testTimer_Tick;
+            testTimer.Interval = new TimeSpan(0, 0, 0, 0, 1000);
+            testTimer.Start();
         }
     }
 }
